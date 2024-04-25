@@ -1,5 +1,6 @@
 const crypto = require('crypto');
 const readline = require('readline');
+const Table = require('cli-table3');
 
 function generateSecretKey() {
   return crypto.randomBytes(32);
@@ -13,20 +14,6 @@ function computeHMAC(key, message) {
   const hmac = crypto.createHmac('sha256', key);
   hmac.update(message);
   return hmac.digest('hex');
-}
-
-function showHelpTable(moves) {
-  console.log('Help Table:');
-  console.log('   ' + moves.join(' | '));
-  console.log('---|' + '-'.repeat(moves.length * 3 - 1));
-  for (const move of moves) {
-    const row = [move];
-    for (const opponentMove of moves) {
-      const result = findRoundWinner(move, opponentMove, moves);
-      row.push(result);
-    }
-    console.log(row.join(' | '));
-  }
 }
 
 function findRoundWinner(playerMove, opponentMove, moves) {
@@ -55,11 +42,14 @@ function startGame(userMove, moves) {
   const hmac = computeHMAC(key, computerMove);
 
   console.log('Computer\'s move:', computerMove);
-  console.log('HMAC:', hmac);
+  console.log('Result:', findRoundWinner(userMove, computerMove, moves));
 
-  const result = findRoundWinner(userMove, computerMove, moves);
-  console.log('Result:', result);
-  console.log('Computer\'s Original Key:', key.toString('hex'));
+  const table = new Table();
+  table.push(
+    { 'HMAC Key': key.toString('hex') },
+    // { 'HMAC': hmac }
+  );
+  console.log(table.toString());
 }
 
 function initializeGame() {
@@ -74,7 +64,16 @@ function initializeGame() {
   console.log('Welcome to the Generalized Rock-Paper-Scissors Game!');
   console.log('Available moves:', moves.join(', '));
 
-  showHelpTable(moves);
+  const helpTable = new Table();
+  helpTable.push(['', ...moves]);
+  for (const move of moves) {
+    const row = [move];
+    for (const opponentMove of moves) {
+      row.push(findRoundWinner(move, opponentMove, moves));
+    }
+    helpTable.push(row);
+  }
+  console.log(helpTable.toString());
 
   const rl = readline.createInterface({
     input: process.stdin,
