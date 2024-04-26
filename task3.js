@@ -1,6 +1,5 @@
 const crypto = require('crypto');
 const readline = require('readline');
-const Table = require('cli-table3');
 
 function generateSecretKey() {
   return crypto.randomBytes(32);
@@ -10,11 +9,6 @@ function selectRandomMove(moves) {
   return moves[Math.floor(Math.random() * moves.length)];
 }
 
-function computeHMAC(key, message) {
-  const hmac = crypto.createHmac('sha256', key);
-  hmac.update(message);
-  return hmac.digest('hex');
-}
 
 function findRoundWinner(playerMove, opponentMove, moves) {
   const totalMoves = moves.length;
@@ -39,17 +33,11 @@ function startGame(userMove, moves) {
 
   const key = generateSecretKey();
   const computerMove = selectRandomMove(moves);
-  const hmac = computeHMAC(key, computerMove);
 
-  console.log('Computer\'s move:', computerMove);
+  console.log('Your move:', userMove);
+  console.log('Computer move:', computerMove);
   console.log('Result:', findRoundWinner(userMove, computerMove, moves));
-
-  const table = new Table();
-  table.push(
-    { 'HMAC Key': key.toString('hex') },
-    // { 'HMAC': hmac }
-  );
-  console.log(table.toString());
+  console.log('HMAC key:', key.toString('hex'));
 }
 
 function initializeGame() {
@@ -61,32 +49,26 @@ function initializeGame() {
     process.exit(1);
   }
 
-  console.log('Welcome to the Generalized Rock-Paper-Scissors Game!');
-  console.log('Available moves:', moves.join(', '));
-
-  const helpTable = new Table();
-  helpTable.push(['', ...moves]);
-  for (const move of moves) {
-    const row = [move];
-    for (const opponentMove of moves) {
-      row.push(findRoundWinner(move, opponentMove, moves));
-    }
-    helpTable.push(row);
-  }
-  console.log(helpTable.toString());
+  console.log('HMAC:', generateSecretKey().toString('hex'));
+  console.log('Available moves:');
+  moves.forEach((move, index) => {
+    console.log(`${index + 1} - ${move}`);
+  });
+  console.log('0 - exit');
+  console.log('? - help');
 
   const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout
   });
 
-  rl.question('Enter your move (type 0 to exit): ', (userMove) => {
+  rl.question('Enter your move: ', (userMove) => {
     if (userMove === '0') {
       rl.close();
       process.exit(0);
     }
 
-    startGame(userMove, moves);
+    startGame(moves[parseInt(userMove) - 1], moves);
     rl.close();
   });
 }
